@@ -1,11 +1,13 @@
 import torch
 from torch import nn
+from torch.utils.tensorboard import SummaryWriter
 
 import load_blender
 from nerf_components import *
 from nerf_utils import *
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+writer = SummaryWriter("")
 
 
 def init_models():
@@ -50,7 +52,7 @@ def init_models():
 
 
 def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, optimizer, warmup_stopper):
-    r"""
+    """
     Launch training session for NeRF.
     """
     # Shuffle rays across all images.
@@ -115,6 +117,7 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
         # Backprop!
         rgb_predicted = outputs['rgb_map']
         loss = torch.nn.functional.mse_loss(rgb_predicted, target_img)
+        writer.add_scalar("Loss/train_mse", loss, i)
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
@@ -122,6 +125,7 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
         # Compute mean-squared error between predicted and target images.
         psnr = -10. * torch.log10(loss)
         train_psnrs.append(psnr.item())
+        writer.add_scalar("Loss/train_psnr", psnr, i)
 
         # Evaluate testimg at given display rate.
         if i % display_rate == 0:
@@ -142,38 +146,38 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
             rgb_predicted = outputs['rgb_map']
             loss = torch.nn.functional.mse_loss(
                 rgb_predicted, testimg.reshape(-1, 3))
-            print("Loss:", loss.item())
+            writer.add_scalar("Loss/eval_mse", loss, i)
             val_psnr = -10. * torch.log10(loss)
-
+            writer.add_scalar("Loss/eval_psnr", val_psnr, i)
             val_psnrs.append(val_psnr.item())
             iternums.append(i)
-
-            
-
+            reshaped_out = rgb_predicted.reshape([height, width,3])
+            reshaped_out = torch.permute(reshaped_out, (2, 0, 1))
+            writer.add_image('TestPred', reshaped_out, i)
             # Plot example outputs
-            fig, ax = plt.subplots(1, 4, figsize=(24, 4), gridspec_kw={
-                                   'width_ratios': [1, 1, 1, 3]})
-            ax[0].imshow(rgb_predicted.reshape(
-                [height, width, 3]).detach().cpu().numpy())
-            ax[0].set_title(f'Iteration: {i}')
-            ax[1].imshow(testimg.detach().cpu().numpy())
-            ax[1].set_title(f'Target')
-            ax[2].plot(range(0, i + 1), train_psnrs, 'r')
-            ax[2].plot(iternums, val_psnrs, 'b')
-            ax[2].set_title('PSNR (train=red, val=blue')
-            z_vals_strat = outputs['z_vals_stratified'].view((-1, n_samples))
-            z_sample_strat = z_vals_strat[z_vals_strat.shape[0] //
-                                          2].detach().cpu().numpy()
-            if 'z_vals_hierarchical' in outputs:
-                z_vals_hierarch = outputs['z_vals_hierarchical'].view(
-                    (-1, n_samples_hierarchical))
-                z_sample_hierarch = z_vals_hierarch[z_vals_hierarch.shape[0] // 2].detach(
-                ).cpu().numpy()
-            else:
-                z_sample_hierarch = None
-            _ = plot_samples(z_sample_strat, z_sample_hierarch, ax=ax[3])
-            ax[3].margins(0)
-            plt.show()
+            # fig, ax = plt.subplots(1, 4, figsize=(24, 4), gridspec_kw={
+            #                        'width_ratios': [1, 1, 1, 3]})
+            # ax[0].imshow(rgb_predicted.reshape(
+            #     [height, width, 3]).detach().cpu().numpy())
+            # ax[0].set_title(f'Iteration: {i}')
+            # ax[1].imshow(testimg.detach().cpu().numpy())
+            # ax[1].set_title(f'Target')
+            # ax[2].plot(range(0, i + 1), train_psnrs, 'r')
+            # ax[2].plot(iternums, val_psnrs, 'b')
+            # ax[2].set_title('PSNR (train=red, val=blue')
+            # z_vals_strat = outputs['z_vals_stratified'].view((-1, n_samples))
+            # z_sample_strat = z_vals_strat[z_vals_strat.shape[0] //
+            #                               2].detach().cpu().numpy()
+            # if 'z_vals_hierarchical' in outputs:
+            #     z_vals_hierarch = outputs['z_vals_hierarchical'].view(
+            #         (-1, n_samples_hierarchical))
+            #     z_sample_hierarch = z_vals_hierarch[z_vals_hierarch.shape[0] // 2].detach(
+            #     ).cpu().numpy()
+            # else:
+            #     z_sample_hierarch = None
+            # _ = plot_samples(z_sample_strat, z_sample_hierarch, ax=ax[3])
+            # ax[3].margins(0)
+            # plt.show()
 
         # Check PSNR for issues and stop if any are found.
         if i == warmup_iters - 1:
