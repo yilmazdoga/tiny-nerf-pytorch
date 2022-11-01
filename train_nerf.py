@@ -225,10 +225,10 @@ if __name__ == "__main__":
 
     # Training
     n_iters = 10000
-    batch_size = 2**4          # Number of rays per gradient step (power of 2)
+    batch_size = 2**4        # Number of rays per gradient step (power of 2)
     # One image per gradient step (disables batching)
-    one_image_per_step = True
-    chunksize = 2**4           # Modify as needed to fit in GPU memory
+    one_image_per_step = False
+    chunksize = 2**4          # Modify as needed to fit in GPU memory
     center_crop = True          # Crop the center of image (one_image_per_)
     center_crop_iters = 50      # Stop cropping center after this many epochs
     display_rate = 25          # Display test output every X epochs
