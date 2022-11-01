@@ -225,7 +225,7 @@ if __name__ == "__main__":
 
     # Training
     n_iters = 10000
-    batch_size = 16          # Number of rays per gradient step (power of 2)
+    batch_size = 4          # Number of rays per gradient step (power of 2)
     # One image per gradient step (disables batching)
     one_image_per_step = True
     chunksize = 4           # Modify as needed to fit in GPU memory
