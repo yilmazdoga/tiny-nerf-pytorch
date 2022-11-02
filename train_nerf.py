@@ -224,7 +224,7 @@ if __name__ == "__main__":
     lr = 1e-4  # Learning rate
 
     # Training
-    n_iters = 10000
+    n_iters = 100000
     batch_size = 2**4        # Number of rays per gradient step (power of 2)
     # One image per gradient step (disables batching)
     one_image_per_step = False
@@ -234,7 +234,7 @@ if __name__ == "__main__":
     display_rate = 25          # Display test output every X epochs
 
     # Early Stopping
-    warmup_iters = 100          # Number of iterations during warmup phase
+    warmup_iters = 500          # Number of iterations during warmup phase
     warmup_min_fitness = 10.0   # Min val PSNR to continue training at warmup_iters
     n_restarts = 10             # Number of times to restart if training stalls
 
