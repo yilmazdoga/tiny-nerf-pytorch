@@ -221,7 +221,7 @@ if __name__ == "__main__":
     perturb_hierarchical = False  # If set, applies noise to sample positions
 
     # Optimizer
-    lr = 5e-4  # Learning rate
+    lr = 1e-4  # Learning rate
 
     # Training
     n_iters = 10000
