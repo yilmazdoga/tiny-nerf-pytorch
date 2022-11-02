@@ -221,7 +221,7 @@ if __name__ == "__main__":
     perturb_hierarchical = False  # If set, applies noise to sample positions
 
     # Optimizer
-    lr = 1e-4  # Learning rate
+    lr = 2e-4  # Learning rate
 
     # Training
     n_iters = 100000
@@ -234,7 +234,7 @@ if __name__ == "__main__":
     display_rate = 25          # Display test output every X epochs
 
     # Early Stopping
-    warmup_iters = 500          # Number of iterations during warmup phase
+    warmup_iters = 200          # Number of iterations during warmup phase
     warmup_min_fitness = 10.0   # Min val PSNR to continue training at warmup_iters
     n_restarts = 10             # Number of times to restart if training stalls
 
