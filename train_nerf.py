@@ -46,7 +46,7 @@ def init_models():
     optimizer = torch.optim.Adam(model_params, lr=lr)
 
     # Early Stopping
-    warmup_stopper = EarlyStopping(patience=50)
+    warmup_stopper = EarlyStopping(patience=100)
 
     return model, fine_model, encode, encode_viewdirs, optimizer, warmup_stopper
 
