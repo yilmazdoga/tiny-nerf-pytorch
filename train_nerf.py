@@ -68,7 +68,7 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
     training_save_dir = params['save_dir'] / training_name
     training_save_dir.mkdir(parents=True, exist_ok=True)
 
-    with open(training_save_dir / "params.json", "w") as outfile:
+    with open(str(training_save_dir / "params.json"), "w") as outfile:
         json.dump(params, outfile)
 
     writer = SummaryWriter(training_save_dir)
