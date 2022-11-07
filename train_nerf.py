@@ -1,5 +1,6 @@
 import torch
 import json
+import time
 from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
 
@@ -61,14 +62,14 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
     """
     Launch training session for NeRF.
     """
-    training_name = "lr" + str(params['lr']) + '_milestones' + str(params['milestones']) + \
-        '_gamma' + str(params['gamma']) + '_batch_size' + \
-        str(params['batch_size'])
 
-    training_save_dir = params['save_dir'] / training_name
+    training_name = "lr" + str(params['lr']) + '_gamma' + str(params['gamma']) + '_batch_size' + \
+        str(params['batch_size'] + time.strftime("%Y-%m-%d-%H-%M-%S"))
+
+    training_save_dir = Path(params['save_dir']) / training_name
     training_save_dir.mkdir(parents=True, exist_ok=True)
 
-    with open(str(training_save_dir / "params.json"), "w") as outfile:
+    with open(training_save_dir / "params.json", "w") as outfile:
         json.dump(params, outfile)
 
     writer = SummaryWriter(training_save_dir)
@@ -214,7 +215,7 @@ if __name__ == "__main__":
               'use_fine_model': True,           # If set, creates a fine model
               'd_filter_fine': 128,             # Dimensions of linear layer filters of fine network
               'n_layers_fine': 6,               # Number of layers in fine network bottleneck
-              'save_dir': Path("training_outputs"),
+              'save_dir': "training_outputs",
               'save_rate': 1000,
               'n_samples_hierarchical': 64,     # Number of samples per ray
               'perturb_hierarchical': False,    # If set, applies noise to sample positions
