@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 def load(data_path='tiny_nerf_data.npz', n_training=100, testimg_idx=101):
     data = np.load(data_path)
-    images, poses = shuffle(data['images'], data['poses'])
+    images, poses = data['images'], data['poses']
     focal = data['focal']
 
     height, width = images.shape[1:3]
