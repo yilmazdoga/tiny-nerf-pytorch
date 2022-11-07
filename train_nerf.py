@@ -47,7 +47,8 @@ def init_models():
     optimizer = torch.optim.Adam(model_params, lr=lr)
 
     # Scheduler
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=gamma)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(
+        optimizer, milestones=milestones, gamma=gamma)
 
     # Early Stopping
     warmup_stopper = EarlyStopping(patience=100)
@@ -155,18 +156,20 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
             writer.add_scalar("Loss/eval_psnr", val_psnr, i)
             val_psnrs.append(val_psnr.item())
             iternums.append(i)
-            reshaped_out = rgb_predicted.reshape([height, width,3])
+            reshaped_out = rgb_predicted.reshape([height, width, 3])
             reshaped_out = torch.permute(reshaped_out, (2, 0, 1))
             writer.add_image('TestPred', reshaped_out, i)
 
             # Save current models
             timestamp = str(time.strftime("%Y-%m-%d-%H-%M"))
             model_name = timestamp + "_model_" + str(i).zfill(8) + ".pth"
-            fine_model_name = timestamp + "_fine_model_" + str(i).zfill(8) + ".pth"
+            fine_model_name = timestamp + \
+                "_fine_model_" + str(i).zfill(8) + ".pth"
             torch.save(model.state_dict(), model_save_dir / model_name)
             if use_fine_model:
-                torch.save(fine_model.state_dict(), model_save_dir / fine_model_name)
-            
+                torch.save(fine_model.state_dict(),
+                           model_save_dir / fine_model_name)
+
         # Check PSNR for issues and stop if any are found.
         if i == warmup_iters - 1:
             if val_psnr < warmup_min_fitness:
@@ -179,7 +182,7 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
                     f'Train PSNR flatlined at {psnr} for {warmup_stopper.patience} iters. Stopping...')
                 return False, train_psnrs, val_psnrs
 
-        scheduler.step()     
+        scheduler.step()
     return True, train_psnrs, val_psnrs
 
 
@@ -214,7 +217,7 @@ if __name__ == "__main__":
     lr = 5e-4  # Learning rate
 
     # Scheduler
-    milestones = [1000,40000,80000]
+    milestones = [1000, 40000, 80000]
     gamma = 0.5
 
     # Training
@@ -241,6 +244,8 @@ if __name__ == "__main__":
     kwargs_sample_hierarchical = {
         'perturb': perturb
     }
+
+    # TODO put parameters insida a json file and read form there.
 
     images, poses, focal, hwnf, testimg, testpose = load_blender.load()
 
