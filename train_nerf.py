@@ -1,5 +1,5 @@
 import torch
-import time
+import os
 from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
 
@@ -8,21 +8,22 @@ from nerf_components import *
 from nerf_utils import *
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-writer = SummaryWriter("")
 
 
-def init_models():
+def init_models(params):
     r"""
     Initialize models, encoders, and optimizer for NeRF training.
     """
     # Encoders
-    encoder = PositionalEncoder(d_input, n_freqs, log_space=log_space)
+    encoder = PositionalEncoder(
+        params['d_input'], params['n_freqs'], log_space=params['log_space'])
+
     def encode(x): return encoder(x)
 
     # View direction encoders
-    if use_viewdirs:
-        encoder_viewdirs = PositionalEncoder(d_input, n_freqs_views,
-                                             log_space=log_space)
+    if params['use_viewdirs']:
+        encoder_viewdirs = PositionalEncoder(
+            params['d_input'], params['n_freqs_views'], log_space=params['log_space'])
 
         def encode_viewdirs(x): return encoder_viewdirs(x)
         d_viewdirs = encoder_viewdirs.d_output
@@ -31,12 +32,12 @@ def init_models():
         d_viewdirs = None
 
     # Models
-    model = NeRF(encoder.d_output, n_layers=n_layers, d_filter=d_filter, skip=skip,
+    model = NeRF(encoder.d_output, n_layers=params['n_layers'], d_filter=params['d_filter'], skip=params['skip'],
                  d_viewdirs=d_viewdirs)
     model.to(device)
     model_params = list(model.parameters())
-    if use_fine_model:
-        fine_model = NeRF(encoder.d_output, n_layers=n_layers, d_filter=d_filter, skip=skip,
+    if params['use_fine_model']:
+        fine_model = NeRF(encoder.d_output, n_layers=params['n_layers'], d_filter=params['d_filter'], skip=params['skip'],
                           d_viewdirs=d_viewdirs)
         fine_model.to(device)
         model_params = model_params + list(fine_model.parameters())
@@ -44,11 +45,11 @@ def init_models():
         fine_model = None
 
     # Optimizer
-    optimizer = torch.optim.Adam(model_params, lr=lr)
+    optimizer = torch.optim.Adam(model_params, lr=params['lr'])
 
     # Scheduler
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
-        optimizer, milestones=milestones, gamma=gamma)
+        optimizer, milestones=params['milestones'], gamma=params['gamma'])
 
     # Early Stopping
     warmup_stopper = EarlyStopping(patience=100)
@@ -56,12 +57,20 @@ def init_models():
     return model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper
 
 
-def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper):
+def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper, params):
     """
     Launch training session for NeRF.
     """
+    training_name = "lr" + str(params['lr']) + '_milestones' + str(params['milestones']) + \
+        '_gamma' + str(params['gamma']) + '_batch_size' + \
+        str(params['batch_size'])
+
+    training_save_dir = params['save_dir'] / training_name
+    training_save_dir.mkdir(parents=True, exist_ok=True)
+    writer = SummaryWriter(training_save_dir)
+
     # Shuffle rays across all images.
-    if not one_image_per_step:
+    if not params['one_image_per_step']:
         height, width = images.shape[1:3]
         all_rays = torch.stack(
             [torch.stack(get_rays(height, width, focal, p), 0) for p in poses], 0)
@@ -75,14 +84,14 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
     train_psnrs = []
     val_psnrs = []
     iternums = []
-    for i in range(n_iters):
+    for i in range(params['n_iters']):
         model.train()
 
-        if one_image_per_step:
+        if params['one_image_per_step']:
             # Randomly pick an image as the target.
             target_img_idx = np.random.randint(images.shape[0])
             target_img = images[target_img_idx].to(device)
-            if center_crop and i < center_crop_iters:
+            if params['center_crop'] and i < params['center_crop_iters']:
                 target_img = crop_center(target_img)
             height, width = target_img.shape[:2]
             target_pose = poses[target_img_idx].to(device)
@@ -91,11 +100,11 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
             rays_d = rays_d.reshape([-1, 3])
         else:
             # Random over all images.
-            batch = rays_rgb[i_batch:i_batch + batch_size]
+            batch = rays_rgb[i_batch:i_batch + params['batch_size']]
             batch = torch.transpose(batch, 0, 1)
             rays_o, rays_d, target_img = batch
             height, width = target_img.shape[:2]
-            i_batch += batch_size
+            i_batch += params['batch_size']
             # Shuffle after one epoch
             if i_batch >= rays_rgb.shape[0]:
                 rays_rgb = rays_rgb[torch.randperm(rays_rgb.shape[0])]
@@ -105,12 +114,12 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
         # Run one iteration of TinyNeRF and get the rendered RGB image.
         outputs = nerf_forward(rays_o, rays_d,
                                near, far, encode, model,
-                               kwargs_sample_stratified=kwargs_sample_stratified,
-                               n_samples_hierarchical=n_samples_hierarchical,
-                               kwargs_sample_hierarchical=kwargs_sample_hierarchical,
+                               kwargs_sample_stratified=params['kwargs_sample_stratified'],
+                               n_samples_hierarchical=params['n_samples_hierarchical'],
+                               kwargs_sample_hierarchical=params['kwargs_sample_hierarchical'],
                                fine_model=fine_model,
                                viewdirs_encoding_fn=encode_viewdirs,
-                               chunksize=chunksize)
+                               chunksize=params['chunksize'])
 
         # Check for any numerical issues.
         for k, v in outputs.items():
@@ -133,7 +142,7 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
         writer.add_scalar("Loss/train_psnr", psnr, i)
 
         # Evaluate testimg at given display rate.
-        if i % display_rate == 0:
+        if i % params['display_rate'] == 0:
             model.eval()
             height, width = testimg.shape[:2]
             rays_o, rays_d = get_rays(height, width, focal, testpose)
@@ -141,12 +150,12 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
             rays_d = rays_d.reshape([-1, 3])
             outputs = nerf_forward(rays_o, rays_d,
                                    near, far, encode, model,
-                                   kwargs_sample_stratified=kwargs_sample_stratified,
-                                   n_samples_hierarchical=n_samples_hierarchical,
-                                   kwargs_sample_hierarchical=kwargs_sample_hierarchical,
+                                   kwargs_sample_stratified=params['kwargs_sample_stratified'],
+                                   n_samples_hierarchical=params['n_samples_hierarchical'],
+                                   kwargs_sample_hierarchical=params['kwargs_sample_hierarchical'],
                                    fine_model=fine_model,
                                    viewdirs_encoding_fn=encode_viewdirs,
-                                   chunksize=chunksize)
+                                   chunksize=params['chunksize'])
 
             rgb_predicted = outputs['rgb_map']
             loss = torch.nn.functional.mse_loss(
@@ -159,25 +168,23 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
             reshaped_out = rgb_predicted.reshape([height, width, 3])
             reshaped_out = torch.permute(reshaped_out, (2, 0, 1))
             writer.add_image('TestPred', reshaped_out, i)
-        
-        if i % save_rate == 0:
+
+        if i % params['save_rate'] == 0:
             # Save current models
-            timestamp = str(time.strftime("%Y-%m-%d-%H-%M"))
-            model_name = timestamp + "_model_" + str(i).zfill(8) + ".pth"
-            fine_model_name = timestamp + \
-                "_fine_model_" + str(i).zfill(8) + ".pth"
-            torch.save(model.state_dict(), model_save_dir / model_name)
-            if use_fine_model:
+            model_name = "model_" + str(i).zfill(8) + ".pth"
+            fine_model_name = "fine_model_" + str(i).zfill(8) + ".pth"
+            torch.save(model.state_dict(), training_save_dir / model_name)
+            if params['use_fine_model']:
                 torch.save(fine_model.state_dict(),
-                           model_save_dir / fine_model_name)
+                           training_save_dir / fine_model_name)
 
         # Check PSNR for issues and stop if any are found.
-        if i == warmup_iters - 1:
-            if val_psnr < warmup_min_fitness:
+        if i == params['warmup_iters'] - 1:
+            if val_psnr < params['warmup_min_fitness']:
                 print(
-                    f'Val PSNR {val_psnr} below warmup_min_fitness {warmup_min_fitness}. Stopping...')
+                    f'Val PSNR {val_psnr} below warmup_min_fitness. Stopping...')
                 return False, train_psnrs, val_psnrs
-        elif i < warmup_iters:
+        elif i < params['warmup_iters']:
             if warmup_stopper is not None and warmup_stopper(i, psnr):
                 print(
                     f'Train PSNR flatlined at {psnr} for {warmup_stopper.patience} iters. Stopping...')
@@ -189,65 +196,41 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
 
 if __name__ == "__main__":
 
-    # Encoders
-    d_input = 3           # Number of input dimensions
-    n_freqs = 10          # Number of encoding functions for samples
-    log_space = True      # If set, frequencies scale in log space
-    use_viewdirs = True   # If set, use view direction as input
-    n_freqs_views = 4     # Number of encoding functions for views
-
-    # Stratified sampling
-    n_samples = 64         # Number of spatial samples per ray
-    perturb = True         # If set, applies noise to sample positions
-    inverse_depth = False  # If set, samples points linearly in inverse depth
-
-    # Model
-    d_filter = 128          # Dimensions of linear layer filters
-    n_layers = 2            # Number of layers in network bottleneck
-    skip = []               # Layers at which to apply input residual
-    use_fine_model = True   # If set, creates a fine model
-    d_filter_fine = 128     # Dimensions of linear layer filters of fine network
-    n_layers_fine = 6       # Number of layers in fine network bottleneck
-    model_save_dir = Path("model_weights")
-    save_rate = 1000
-
-    # Hierarchical sampling
-    n_samples_hierarchical = 64   # Number of samples per ray
-    perturb_hierarchical = False  # If set, applies noise to sample positions
-
-    # Optimizer
-    lr = 4e-4  # Learning rate
-
-    # Scheduler
-    milestones = [50000, 90000]
-    gamma = 0.5
-
-    # Training
-    n_iters = 100000
-    batch_size = 2**4        # Number of rays per gradient step (power of 2)
-    # One image per gradient step (disables batching)
-    one_image_per_step = False
-    chunksize = 2**4          # Modify as needed to fit in GPU memory
-    center_crop = True          # Crop the center of image (one_image_per_)
-    center_crop_iters = 50      # Stop cropping center after this many epochs
-    display_rate = 25          # Display test output every X epochs
-
-    # Early Stopping
-    warmup_iters = 200          # Number of iterations during warmup phase
-    warmup_min_fitness = 10.0   # Min val PSNR to continue training at warmup_iters
-    n_restarts = 10             # Number of times to restart if training stalls
-
-    # We bundle the kwargs for various functions to pass all at once.
-    kwargs_sample_stratified = {
-        'n_samples': n_samples,
-        'perturb': perturb,
-        'inverse_depth': inverse_depth
-    }
-    kwargs_sample_hierarchical = {
-        'perturb': perturb
-    }
-
-    # TODO put parameters insida a json file and read form there.
+    params = {'d_input': 3,                     # Number of input dimensions
+              'n_freqs': 10,                    # Number of encoding functions for samples
+              'log_space': True,                # If set, frequencies scale in log space
+              'use_viewdirs': True,             # If set, use view direction as input
+              'n_freqs_views': 4,               # Number of encoding functions for views
+              'n_samples': 64,                  # Number of spatial samples per ray
+              'perturb': True,                  # If set, applies noise to sample positions
+              'inverse_depth': False,           # If set, samples points linearly in inverse depth
+              'd_filter': 128,                  # Dimensions of linear layer filters
+              'n_layers': 2,                    # Number of layers in network bottleneck
+              'skip': [],                       # Layers at which to apply input residual
+              'use_fine_model': True,           # If set, creates a fine model
+              'd_filter_fine': 128,             # Dimensions of linear layer filters of fine network
+              'n_layers_fine': 6,               # Number of layers in fine network bottleneck
+              'save_dir': Path("training_outputs"),
+              'save_rate': 1000,
+              'n_samples_hierarchical': 64,     # Number of samples per ray
+              'perturb_hierarchical': False,    # If set, applies noise to sample positions
+              'lr': 4e-4,
+              'milestones': [50000, 90000],
+              'gamma': 0.5,
+              'n_iters': 100000,
+              'batch_size': 2**4,
+              'one_image_per_step': False,
+              'chunksize': 2**4,                # Modify as needed to fit in GPU memory
+              # Crop the center of image (one_image_per_)
+              'center_crop': True,
+              'center_crop_iters': 50,          # Stop cropping center after this many epochs
+              'display_rate': 25,               # Display test output every X epochs
+              'warmup_iters': 200,              # Number of iterations during warmup phase
+              'warmup_min_fitness': 10.0,       # Min val PSNR to continue training at warmup_iters
+              'n_restarts': 10,                 # Number of times to restart if training stalls
+              'kwargs_sample_stratified': {'n_samples': 64, 'perturb': True, 'inverse_depth': False},
+              'kwargs_sample_hierarchical': {'perturb': True}
+              }
 
     images, poses, focal, hwnf, testimg, testpose = load_blender.load()
 
@@ -259,11 +242,12 @@ if __name__ == "__main__":
     testimg = torch.from_numpy(testimg).to(device)
     testpose = torch.from_numpy(testpose).to(device)
 
-    for _ in range(n_restarts):
-        model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper = init_models()
+    for _ in range(params['n_restarts']):
+        model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper = init_models(
+            params)
         success, train_psnrs, val_psnrs = train(
-            images, poses, focal, model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper)
-        if success and val_psnrs[-1] >= warmup_min_fitness:
+            images, poses, focal, model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper, params)
+        if success and val_psnrs[-1] >= params['warmup_min_fitness']:
             print('Training successful!')
             break
 
