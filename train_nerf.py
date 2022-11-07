@@ -47,7 +47,7 @@ def init_models():
     optimizer = torch.optim.Adam(model_params, lr=lr)
 
     # Scheduler
-    scheduler = torch.optim.MultiStepLR(optimizer, milestones=milestones, gamma=gamma)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=gamma)
 
     # Early Stopping
     warmup_stopper = EarlyStopping(patience=100)
