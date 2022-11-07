@@ -216,10 +216,10 @@ if __name__ == "__main__":
     perturb_hierarchical = False  # If set, applies noise to sample positions
 
     # Optimizer
-    lr = 5e-4  # Learning rate
+    lr = 4e-4  # Learning rate
 
     # Scheduler
-    milestones = [1000, 40000, 80000]
+    milestones = [50000, 90000]
     gamma = 0.5
 
     # Training
