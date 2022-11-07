@@ -8,7 +8,7 @@ from nerf_components import *
 from nerf_utils import *
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-writer = SummaryWriter("runs/")
+writer = SummaryWriter("")
 
 
 def init_models():
