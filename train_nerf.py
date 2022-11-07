@@ -64,7 +64,7 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
     """
 
     training_name = "lr" + str(params['lr']) + '_gamma' + str(params['gamma']) + '_batch_size' + \
-        str(params['batch_size'] + str(time.strftime("%Y-%m-%d-%H-%M-%S")))
+        str(params['batch_size']) + str(time.strftime("%Y-%m-%d-%H-%M-%S"))
 
     training_save_dir = Path(params['save_dir']) / training_name
     training_save_dir.mkdir(parents=True, exist_ok=True)
