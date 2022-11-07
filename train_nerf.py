@@ -1,13 +1,14 @@
 import torch
-from torch import nn
+import time
 from torch.utils.tensorboard import SummaryWriter
+from pathlib import Path
 
 import load_blender
 from nerf_components import *
 from nerf_utils import *
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-writer = SummaryWriter("")
+writer = SummaryWriter("runs/")
 
 
 def init_models():
@@ -45,13 +46,16 @@ def init_models():
     # Optimizer
     optimizer = torch.optim.Adam(model_params, lr=lr)
 
+    # Scheduler
+    scheduler = torch.optim.MultiStepLR(optimizer, milestones=milestones, gamma=gamma)
+
     # Early Stopping
     warmup_stopper = EarlyStopping(patience=100)
 
-    return model, fine_model, encode, encode_viewdirs, optimizer, warmup_stopper
+    return model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper
 
 
-def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, optimizer, warmup_stopper):
+def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper):
     """
     Launch training session for NeRF.
     """
@@ -154,31 +158,15 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
             reshaped_out = rgb_predicted.reshape([height, width,3])
             reshaped_out = torch.permute(reshaped_out, (2, 0, 1))
             writer.add_image('TestPred', reshaped_out, i)
-            # Plot example outputs
-            # fig, ax = plt.subplots(1, 4, figsize=(24, 4), gridspec_kw={
-            #                        'width_ratios': [1, 1, 1, 3]})
-            # ax[0].imshow(rgb_predicted.reshape(
-            #     [height, width, 3]).detach().cpu().numpy())
-            # ax[0].set_title(f'Iteration: {i}')
-            # ax[1].imshow(testimg.detach().cpu().numpy())
-            # ax[1].set_title(f'Target')
-            # ax[2].plot(range(0, i + 1), train_psnrs, 'r')
-            # ax[2].plot(iternums, val_psnrs, 'b')
-            # ax[2].set_title('PSNR (train=red, val=blue')
-            # z_vals_strat = outputs['z_vals_stratified'].view((-1, n_samples))
-            # z_sample_strat = z_vals_strat[z_vals_strat.shape[0] //
-            #                               2].detach().cpu().numpy()
-            # if 'z_vals_hierarchical' in outputs:
-            #     z_vals_hierarch = outputs['z_vals_hierarchical'].view(
-            #         (-1, n_samples_hierarchical))
-            #     z_sample_hierarch = z_vals_hierarch[z_vals_hierarch.shape[0] // 2].detach(
-            #     ).cpu().numpy()
-            # else:
-            #     z_sample_hierarch = None
-            # _ = plot_samples(z_sample_strat, z_sample_hierarch, ax=ax[3])
-            # ax[3].margins(0)
-            # plt.show()
 
+            # Save current models
+            timestamp = str(time.strftime("%Y-%m-%d-%H-%M"))
+            model_name = timestamp + "_model_" + str(i).zfill(8) + ".pth"
+            fine_model_name = timestamp + "_fine_model_" + str(i).zfill(8) + ".pth"
+            torch.save(model.state_dict(), model_save_dir / model_name)
+            if use_fine_model:
+                torch.save(fine_model.state_dict(), model_save_dir / fine_model_name)
+            
         # Check PSNR for issues and stop if any are found.
         if i == warmup_iters - 1:
             if val_psnr < warmup_min_fitness:
@@ -191,6 +179,7 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
                     f'Train PSNR flatlined at {psnr} for {warmup_stopper.patience} iters. Stopping...')
                 return False, train_psnrs, val_psnrs
 
+        scheduler.step()     
     return True, train_psnrs, val_psnrs
 
 
@@ -215,13 +204,18 @@ if __name__ == "__main__":
     use_fine_model = True   # If set, creates a fine model
     d_filter_fine = 128     # Dimensions of linear layer filters of fine network
     n_layers_fine = 6       # Number of layers in fine network bottleneck
+    model_save_dir = Path("model_weights")
 
     # Hierarchical sampling
     n_samples_hierarchical = 64   # Number of samples per ray
     perturb_hierarchical = False  # If set, applies noise to sample positions
 
     # Optimizer
-    lr = 2e-4  # Learning rate
+    lr = 5e-4  # Learning rate
+
+    # Scheduler
+    milestones = [1000,40000,80000]
+    gamma = 0.5
 
     # Training
     n_iters = 100000
@@ -259,9 +253,9 @@ if __name__ == "__main__":
     testpose = torch.from_numpy(testpose).to(device)
 
     for _ in range(n_restarts):
-        model, fine_model, encode, encode_viewdirs, optimizer, warmup_stopper = init_models()
+        model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper = init_models()
         success, train_psnrs, val_psnrs = train(
-            images, poses, focal, model, fine_model, encode, encode_viewdirs, optimizer, warmup_stopper)
+            images, poses, focal, model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper)
         if success and val_psnrs[-1] >= warmup_min_fitness:
             print('Training successful!')
             break
