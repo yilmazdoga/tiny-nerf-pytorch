@@ -159,7 +159,8 @@ def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, opti
             reshaped_out = rgb_predicted.reshape([height, width, 3])
             reshaped_out = torch.permute(reshaped_out, (2, 0, 1))
             writer.add_image('TestPred', reshaped_out, i)
-
+        
+        if i % save_rate == 0:
             # Save current models
             timestamp = str(time.strftime("%Y-%m-%d-%H-%M"))
             model_name = timestamp + "_model_" + str(i).zfill(8) + ".pth"
@@ -208,6 +209,7 @@ if __name__ == "__main__":
     d_filter_fine = 128     # Dimensions of linear layer filters of fine network
     n_layers_fine = 6       # Number of layers in fine network bottleneck
     model_save_dir = Path("model_weights")
+    save_rate = 1000
 
     # Hierarchical sampling
     n_samples_hierarchical = 64   # Number of samples per ray
