@@ -133,3 +133,6 @@ runs/**
 
 # training_outputs
 training_outputs/**
+
+# fishency_data
+fishency_scene_0/**
