@@ -131,5 +131,5 @@ dmypy.json
 # TensorBoard logs
 runs/**
 
-# Weights
-model_weights/**
+# training_outputs
+training_outputs/**
