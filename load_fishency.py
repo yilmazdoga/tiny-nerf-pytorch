@@ -15,24 +15,24 @@ def load(images_path='fishency_scene_0'):
     images.append(imread(images_path/"cam2.png"))
     images.append(imread(images_path/"cam3.png"))
 
-    poses.append(np.array([[1., 2., 3., 4.],
-                           [5., 6., 7., 8.],
-                           [9., 10., 11., 12.],
+    poses.append(np.array([[1., 0., 0., 0.],     # Tz(3.5)
+                           [0., 1., 0., 0.],
+                           [0., 0., 1., 3.5],
                            [0., 0., 0., 1.]]))
 
-    poses.append(np.array([[1., 2., 3., 4.],
-                           [5., 6., 7., 8.],
-                           [9., 10., 11., 12.],
+    poses.append(np.array([[-1., 0., 0., 0.],     # Tz(-3.5) Ry(180)
+                           [0., 1., 0., 0.],
+                           [0., 0., -1., -3.5],
                            [0., 0., 0., 1.]]))
 
-    poses.append(np.array([[1., 2., 3., 4.],
-                           [5., 6., 7., 8.],
-                           [9., 10., 11., 12.],
+    poses.append(np.array([[-1., 0., 0., 0.],     # Ty(3.5) Rx(-90) Ry(180)
+                           [0., 0., 1., 3.5],
+                           [0., 1., 0., 0.],
                            [0., 0., 0., 1.]]))
 
-    poses.append(np.array([[1., 2., 3., 4.],
-                           [5., 6., 7., 8.],
-                           [9., 10., 11., 12.],
+    poses.append(np.array([[1., 0., 0., 0.],      # Ty(-3.5) Rx(90)
+                           [0., 0., -1., -3.5],
+                           [0., 1., 0., 0.],
                            [0., 0., 0., 1.]]))
 
     stacked_images = np.stack(images, axis=0)
@@ -41,7 +41,7 @@ def load(images_path='fishency_scene_0'):
     height, width = stacked_images.shape[1:3]
     near, far = 2., 6.
 
-    focal = 0
+    focal = 0.06
     hwnf = (height, width, near, far)
     testimg = stacked_images[0]
     testpose = stacked_poses[0]
@@ -73,5 +73,10 @@ if __name__ == "__main__":
         origins[..., 2].flatten(),
         dirs[..., 0].flatten(),
         dirs[..., 1].flatten(),
-        dirs[..., 2].flatten(), length=0.5, normalize=True)
+        dirs[..., 2].flatten(), pivot='tip', length=0.5)
+
+    ax.axes.set_xlim3d(left=-3.5, right=3.5)
+    ax.axes.set_ylim3d(bottom=-3.5, top=3.5) 
+    ax.axes.set_zlim3d(bottom=-3.5, top=3.5) 
+
     plt.show()
