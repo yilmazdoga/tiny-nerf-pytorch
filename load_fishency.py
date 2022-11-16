@@ -20,17 +20,17 @@ def load(images_path='fishency_scene_0'):
                            [0., 0., 1., 3.5],
                            [0., 0., 0., 1.]]))
 
-    poses.append(np.array([[-1., 0., 0., 0.],     # Tz(-3.5) Ry(180)
-                           [0., 1., 0., 0.],
+    poses.append(np.array([[1., 0., 0., 0.],     # Ty(3.5) Rx(-90)
+                           [0., 0., 1., 3.5],
+                           [0., -1., 0., 0.],
+                           [0., 0., 0., 1.]]))
+
+    poses.append(np.array([[1., 0., 0., 0.],     # Tz(-3.5) Rx(180)
+                           [0., -1., 0., 0.],
                            [0., 0., -1., -3.5],
                            [0., 0., 0., 1.]]))
 
-    poses.append(np.array([[-1., 0., 0., 0.],     # Ty(3.5) Rx(-90) Ry(180)
-                           [0., 0., 1., 3.5],
-                           [0., 1., 0., 0.],
-                           [0., 0., 0., 1.]]))
-
-    poses.append(np.array([[1., 0., 0., 0.],      # Ty(-3.5) Rx(90)
+    poses.append(np.array([[1., 0., 0., 0.],     # Ty(-3.5) Rx(90)
                            [0., 0., -1., -3.5],
                            [0., 1., 0., 0.],
                            [0., 0., 0., 1.]]))
@@ -76,7 +76,7 @@ if __name__ == "__main__":
         dirs[..., 2].flatten(), pivot='tip', length=0.5)
 
     ax.axes.set_xlim3d(left=-3.5, right=3.5)
-    ax.axes.set_ylim3d(bottom=-3.5, top=3.5) 
-    ax.axes.set_zlim3d(bottom=-3.5, top=3.5) 
+    ax.axes.set_ylim3d(bottom=-3.5, top=3.5)
+    ax.axes.set_zlim3d(bottom=-3.5, top=3.5)
 
     plt.show()
