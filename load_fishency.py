@@ -39,7 +39,7 @@ def load(images_path='fishency_scene_0'):
     stacked_poses = np.stack(poses, axis=0)
 
     height, width = stacked_images.shape[1:3]
-    near, far = 2., 6.
+    near, far = 0.5, 6.5
 
     focal = 0.06
     hwnf = (height, width, near, far)
