@@ -136,3 +136,6 @@ training_outputs/**
 
 # fishency_data
 fishency_scene_0/**
+
+# blender_scene
+fishency_short_unit_render/**
