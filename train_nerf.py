@@ -227,7 +227,7 @@ if __name__ == "__main__":
               'n_iters': 100000,
               'batch_size': 2**4,
               'one_image_per_step': False,
-              'chunksize': 2**4,                # Modify as needed to fit in GPU memory
+              'chunksize': 2**2,                # Modify as needed to fit in GPU memory
               # Crop the center of image (one_image_per_)
               'center_crop': True,
               'center_crop_iters': 50,          # Stop cropping center after this many epochs

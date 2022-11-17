@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.image import imread
 from pathlib import Path
+import cv2
 
 
 def load(images_path='fishency_scene_0'):
@@ -14,6 +15,12 @@ def load(images_path='fishency_scene_0'):
     images.append(imread(images_path/"cam1.png"))
     images.append(imread(images_path/"cam2.png"))
     images.append(imread(images_path/"cam3.png"))
+
+    # resize to 228x120
+    image_size = (228,120)
+
+    for i in range(len(images)):
+        images[i] = cv2.resize(images[i], image_size, interpolation = cv2.INTER_AREA)
 
     poses.append(np.array([[1., 0., 0., 0.],     # Tz(3.5)
                            [0., 1., 0., 0.],
