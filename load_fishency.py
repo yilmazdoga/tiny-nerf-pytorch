@@ -41,7 +41,7 @@ def load(images_path='fishency_scene_0'):
     height, width = stacked_images.shape[1:3]
     near, far = 0.5, 6.5
 
-    focal = 0.06
+    focal = np.array(0.06)
     hwnf = (height, width, near, far)
     testimg = stacked_images[0]
     testpose = stacked_poses[0]
