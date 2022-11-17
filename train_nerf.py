@@ -5,6 +5,7 @@ from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
 
 import load_blender
+import load_fishency
 from nerf_components import *
 from nerf_utils import *
 
@@ -58,13 +59,14 @@ def init_models(params):
     return model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper
 
 
-def train(images, poses, focal, model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper, params):
+def train(images, poses, focal, near, far, model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper, params):
     """
     Launch training session for NeRF.
     """
 
     training_name = "lr" + str(params['lr']) + '_gamma' + str(params['gamma']) + '_batch_size' + \
-        str(params['batch_size']) + "_date" +str(time.strftime("%Y-%m-%d-%H-%M-%S"))
+        str(params['batch_size']) + "_date" + \
+        str(time.strftime("%Y-%m-%d-%H-%M-%S"))
 
     training_save_dir = Path(params['save_dir']) / training_name
     training_save_dir.mkdir(parents=True, exist_ok=True)
@@ -237,7 +239,7 @@ if __name__ == "__main__":
               'kwargs_sample_hierarchical': {'perturb': True}
               }
 
-    images, poses, focal, hwnf, testimg, testpose = load_blender.load()
+    images, poses, focal, hwnf, testimg, testpose = load_fishency.load()
 
     height, width, near, far = hwnf
 
@@ -251,7 +253,7 @@ if __name__ == "__main__":
         model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper = init_models(
             params)
         success, train_psnrs, val_psnrs = train(
-            images, poses, focal, model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper, params)
+            images, poses, focal, near, far, model, fine_model, encode, encode_viewdirs, optimizer, scheduler, warmup_stopper, params)
         if success and val_psnrs[-1] >= params['warmup_min_fitness']:
             print('Training successful!')
             break
