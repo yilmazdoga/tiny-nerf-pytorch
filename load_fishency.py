@@ -25,22 +25,22 @@ def load(images_path='fishency_scene_0'):
     poses.append(np.array([[1., 0., 0., 0.],     # Tz(3.5)
                            [0., 1., 0., 0.],
                            [0., 0., 1., 3.5],
-                           [0., 0., 0., 1.]]))
+                           [0., 0., 0., 1.]], dtype=np.float32))
 
     poses.append(np.array([[1., 0., 0., 0.],     # Ty(3.5) Rx(-90)
                            [0., 0., 1., 3.5],
                            [0., -1., 0., 0.],
-                           [0., 0., 0., 1.]]))
+                           [0., 0., 0., 1.]], dtype=np.float32))
 
     poses.append(np.array([[1., 0., 0., 0.],     # Tz(-3.5) Rx(180)
                            [0., -1., 0., 0.],
                            [0., 0., -1., -3.5],
-                           [0., 0., 0., 1.]]))
+                           [0., 0., 0., 1.]], dtype=np.float32))
 
     poses.append(np.array([[1., 0., 0., 0.],     # Ty(-3.5) Rx(90)
                            [0., 0., -1., -3.5],
                            [0., 1., 0., 0.],
-                           [0., 0., 0., 1.]]))
+                           [0., 0., 0., 1.]], dtype=np.float32))
 
     stacked_images = np.stack(images, axis=0)
     stacked_poses = np.stack(poses, axis=0)
@@ -64,6 +64,10 @@ if __name__ == "__main__":
     print(f'Poses shape: {poses.shape}')
     print(f'Focal length: {focal}')
     print(hwnf)
+
+    print(images.dtype)
+    print(poses[0].dtype)
+    print(focal.dtype)
 
     plt.imshow(testimg)
     print('Pose')

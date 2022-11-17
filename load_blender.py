@@ -25,6 +25,11 @@ if __name__ == "__main__":
     print(f'Focal length: {focal}')
     print(hwnf)
 
+    print(images.dtype)
+    print(poses[0].dtype)
+    print(focal.dtype)
+
+
     plt.imshow(testimg)
     print('Pose')
     print(testpose)
