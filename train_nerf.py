@@ -222,7 +222,7 @@ if __name__ == "__main__":
               'n_samples_hierarchical': 64,     # Number of samples per ray
               'perturb_hierarchical': False,    # If set, applies noise to sample positions
               'lr': 5e-4,
-              'milestones': [20000, 50000, 90000],
+              'milestones': [50000, 90000],
               'gamma': 0.5,
               'n_iters': 100000,
               'batch_size': 2**8,
