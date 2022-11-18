@@ -239,7 +239,7 @@ if __name__ == "__main__":
               'kwargs_sample_hierarchical': {'perturb': True}
               }
 
-    images, poses, focal, hwnf, testimg, testpose = load_fishency.load(images_path="fishency_scene_1")
+    images, poses, focal, hwnf, testimg, testpose = load_fishency.load(images_path="fishency_scene_0")
 
     height, width, near, far = hwnf
 
