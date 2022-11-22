@@ -10,6 +10,7 @@ from nerf_utils import *
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+
 def init_models(params, model_fname, fine_model_fname=None):
     r"""
     Initialize models, encoders, and optimizer for NeRF training.
@@ -82,8 +83,10 @@ def predict(pose, height, width, focal, near, far, model, fine_model, encode, en
 def predict_many(poses, height, width, focal, near, far, model, fine_model, encode, encode_viewdirs, params):
     results = list()
     for i in tqdm(range(poses.shape[0])):
-        results.append(predict(poses[i], height, width, focal, near,
-                       far, model, fine_model, encode, encode_viewdirs, params))
+        prediction = predict(poses[i], height, width, focal, near,
+                             far, model, fine_model, encode, encode_viewdirs, params)
+        save_as_image(prediction, Path('fishency_scene_0/eval_out'), i)
+        results.append(prediction)
     return results
 
 
@@ -95,6 +98,12 @@ def save_as_images(frames, save_dir):
     save_dir.mkdir(parents=True, exist_ok=True)
     for i, frame in enumerate(frames):
         save_image(frame, str(save_dir) + '/' + str(i) + '.png')
+
+
+def save_as_image(frame, save_dir, i):
+    save_dir.mkdir(parents=True, exist_ok=True)
+    save_image(frame, str(save_dir) + '/' + str(i) + '.png')
+
 
 if __name__ == "__main__":
     experiment_path = Path(
@@ -130,4 +139,4 @@ if __name__ == "__main__":
     frames = predict_many(stacked_test_poses, height, width, focal,
                           near, far, model, fine_model, encode, encode_viewdirs, params)
 
-    save_as_images(frames, Path('fishency_scene_0/eval_out'))
+    # save_as_images(frames, Path('fishency_scene_0/eval_out'))
