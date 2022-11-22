@@ -93,6 +93,8 @@ def train(images, poses, focal, near, far, model, fine_model, encode, encode_vie
     iternums = []
     for i in range(params['n_iters']):
         model.train()
+        if fine_model != None:
+            fine_model.train()
 
         if params['one_image_per_step']:
             # Randomly pick an image as the target.
@@ -151,6 +153,8 @@ def train(images, poses, focal, near, far, model, fine_model, encode, encode_vie
         # Evaluate testimg at given display rate.
         if i % params['display_rate'] == 0:
             model.eval()
+            if fine_model != None:
+                fine_model.eval()
             height, width = testimg.shape[:2]
             rays_o, rays_d = get_rays(height, width, focal, testpose)
             rays_o = rays_o.reshape([-1, 3])
