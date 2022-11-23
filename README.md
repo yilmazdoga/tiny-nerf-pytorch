@@ -1,5 +1,5 @@
 # tint-nerf-pytorch
-This project is a simplified and cropped down PyTorch implementation of NeRF.
+This project is a simplified PyTorch implementation of the paper "NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis".
 
 ## Installation
 ```
