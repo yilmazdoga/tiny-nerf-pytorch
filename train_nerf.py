@@ -207,7 +207,7 @@ def train(images, poses, focal, near, far, model, fine_model, encode, encode_vie
 if __name__ == "__main__":
 
     params = {'d_input': 3,                     # Number of input dimensions
-              'experiment_name': 'nerf_experiment_4cam',
+              'experiment_name': 'nerf_experiment_blender',
               'scene_name': 'fishency_scene_0',
               'n_freqs': 10,                    # Number of encoding functions for samples
               'log_space': True,                # If set, frequencies scale in log space
@@ -244,8 +244,7 @@ if __name__ == "__main__":
               'kwargs_sample_hierarchical': {'perturb': True}
               }
 
-    images, poses, focal, hwnf, testimg, testpose = load_fishency.load(
-        images_path=params['scene_name'])
+    images, poses, focal, hwnf, testimg, testpose = load_blender.load()
 
     height, width, near, far = hwnf
 
