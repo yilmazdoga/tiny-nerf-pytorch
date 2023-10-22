@@ -9,7 +9,7 @@ pip install -r requirements.txt
 ```
 
 ## TODO
-- Add refreances
+- Add references
 - Add data installation
 - Add pretrained weights for example scenes
 - Add train, eval instructions
